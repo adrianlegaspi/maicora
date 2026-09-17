@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# Enforces the commit naming rules from AGENTS.md ("Git & version control"):
+# Conventional Commits, lowercase subject, no trailing period, subject kept
+# short, blank line before any body.
+#
+# Install: ./.githooks/install.sh
+
+msg_file="$1"
+[ -f "$msg_file" ] || exit 0
+
+TYPES='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
+MAX_SUBJECT=72
+
+# Drop the `git commit -v` scissors section and comment lines, then trim
+# leading blank lines so line 1 is the real subject.
+cleaned=$(sed -e '/^#.*>8/,$d' -e '/^#/d' "$msg_file" | sed -e '/./,$!d')
+subject=$(printf '%s\n' "$cleaned" | sed -n '1p')
+second=$(printf '%s\n' "$cleaned" | sed -n '2p')
+
+# Empty message: let git abort on its own with its own wording.
+[ -n "$subject" ] || exit 0
+
+# Machine-generated messages are not ours to rename.
+case "$subject" in
+  Merge\ *|Revert\ \"*|fixup!*|squash!*|amend!*) exit 0 ;;
+esac
+
+fail() {
+  printf '\n  commit-msg: %s\n' "$1" >&2
+  printf '  subject:    %s\n' "$subject" >&2
+  cat >&2 <<EOF
+
+  Expected format:  type(optional-scope): subject
+
+  Types:  build chore ci docs feat fix perf refactor revert style test
+  Rules:  lowercase subject, no trailing period, max ${MAX_SUBJECT} chars,
+          blank line before any body. Append ! before the colon for a
+          breaking change.
+
+  Example:  feat(auth): add refresh token rotation
+
+EOF
+  exit 1
+}
+
+printf '%s' "$subject" | grep -Eq "^($TYPES)(\([a-z0-9._/-]+\))?!?: .+" \
+  || fail 'subject does not match the Conventional Commits format'
+
+description=${subject#*: }
+
+printf '%s' "$description" | grep -Eq '^[A-Z]' \
+  && fail 'subject must start lowercase'
+
+case "$description" in
+  *.) fail 'subject must not end with a period' ;;
+esac
+
+[ "${#subject}" -le "$MAX_SUBJECT" ] \
+  || fail "subject is ${#subject} chars, limit is ${MAX_SUBJECT}"
+
+[ -z "$second" ] \
+  || fail 'body must be separated from the subject by a blank line'
+
+exit 0

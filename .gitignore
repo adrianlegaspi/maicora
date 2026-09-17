@@ -1,0 +1,36 @@
+# --- boilerplate:node (managed, edits are overwritten) ---
+# Dependencies — fully reproducible from the lockfile, never commit this.
+node_modules/
+
+# Build output.
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.vite/
+
+# Package manager logs and debug artifacts.
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Env files — real secrets stay local; commit .env.example instead.
+.env
+.env.*
+!.env.example
+
+# Coverage / test artifacts.
+coverage/
+.nyc_output/
+
+# TypeScript incremental build cache.
+*.tsbuildinfo
+
+# OS/editor cruft.
+.DS_Store
+Thumbs.db
+# --- end boilerplate:node ---
