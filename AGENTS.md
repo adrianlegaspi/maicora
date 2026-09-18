@@ -52,6 +52,29 @@ outdated, flag it — don't leave the spec and the code disagreeing.
    of implying it works. "Should work" and "verified working" are different
    claims — use the right one.
 
+## Required skills
+
+Both of these apply to every task in this repository, always. Invoke them by
+name rather than approximating their behavior from memory.
+
+- **`ponytail`**: invoke on any coding task (writing, adding, refactoring,
+  fixing, reviewing, designing code, choosing a library or dependency) before
+  proposing or writing code. It forces the laziest solution that actually
+  works: standard library before custom code, native platform features before
+  dependencies, one line before fifty.
+- **`caveman`**: invoke at the start of the session and keep every prose
+  response in that mode. Technical substance stays exact, only fluff is cut.
+  Scope is chat responses. Commit messages, documentation, code comments and
+  code itself stay in normal English, because they are read by people who
+  never opted into this setup.
+
+Where `ponytail`'s YAGNI instinct conflicts with prime directive 2, prime
+directive 2 wins: raise the simplification, don't silently drop requested
+work.
+
+If a skill is unavailable in the current environment, say so once and apply
+its principle manually instead of skipping it.
+
 ## Code quality
 
 - **No speculative abstraction.** Solve the problem in front of you. Don't
