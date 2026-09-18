@@ -1,0 +1,1 @@
+ALTER TYPE "public"."proposal_kind" ADD VALUE 'BULK_IMPORT';
