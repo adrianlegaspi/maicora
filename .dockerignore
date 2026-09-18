@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.env
+.env.*
+!.env.example
+storage
+apps/fiscal-engine/.venv
+**/__pycache__
+**/*.egg-info

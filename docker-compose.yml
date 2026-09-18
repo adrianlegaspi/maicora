@@ -1,0 +1,96 @@
+name: maicora
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: maicora
+      POSTGRES_PASSWORD: maicora
+      POSTGRES_DB: maicora
+    ports:
+      # Host port 5433: this machine already runs a native Postgres on 5432
+      # for other projects, so the container is mapped to a different host
+      # port to avoid any collision with it.
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - maicora_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maicora -d maicora"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  fiscal-engine:
+    build:
+      context: ./apps/fiscal-engine
+    restart: unless-stopped
+    environment:
+      FISCAL_ENGINE_SHARED_SECRET: ${FISCAL_ENGINE_SHARED_SECRET:-dev-shared-secret}
+      PAC_PROVIDER: ${PAC_PROVIDER:-mock}
+    ports:
+      - "${FISCAL_ENGINE_PORT:-8090}:8090"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fiscal-engine:
+        condition: service_started
+    environment:
+      # Inside the compose network the container always listens on 5432;
+      # only the host-side mapping uses the alternate port.
+      DATABASE_URL: postgres://maicora:maicora@postgres:5432/maicora
+      FISCAL_ENGINE_URL: http://fiscal-engine:8090
+      FISCAL_ENGINE_SHARED_SECRET: ${FISCAL_ENGINE_SHARED_SECRET:-dev-shared-secret}
+      AI_API: ${AI_API:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      AUTH_DEV_LOGIN: ${AUTH_DEV_LOGIN:-false}
+      FISCAL_ENVIRONMENT: ${FISCAL_ENVIRONMENT:-sandbox}
+      NODE_ENV: ${NODE_ENV:-development}
+    ports:
+      - "${API_PORT:-4000}:4000"
+
+  mcp:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://maicora:maicora@postgres:5432/maicora
+      FISCAL_ENGINE_URL: http://fiscal-engine:8090
+      FISCAL_ENGINE_SHARED_SECRET: ${FISCAL_ENGINE_SHARED_SECRET:-dev-shared-secret}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      MCP_PORT: 4100
+      NODE_ENV: ${NODE_ENV:-development}
+    # Same image as the API - same workspace, different entry point. The
+    # migration step belongs to the API, which owns the schema.
+    command: ["pnpm", "--filter", "@maicora/mcp", "start"]
+    ports:
+      - "${MCP_PORT:-4100}:4100"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:${API_PORT:-4000}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+
+volumes:
+  maicora_postgres_data:
